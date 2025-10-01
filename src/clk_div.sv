@@ -101,7 +101,7 @@ module clk_div #(parameter DIV = 8)
             SENSOR_CLK <= ~SENSOR_CLK;
         end
         else begin
-            counter <= counter + 1;
+            counter <= counter + 32'b1;
         end
     end
 
@@ -158,7 +158,7 @@ module st_gene #(
             st_counter <= 0;
         end
         else begin
-            st_counter <= st_counter + 1;
+            st_counter <= st_counter + 21'b1;
         end
     end
 

@@ -52,9 +52,9 @@ module top(
 
     // ST 信号生成器
     st_gene #(
-        .MAX (1000),
+        .MAX (40000),
         .MIN (0),
-        .HIGH(200)
+        .HIGH(6000)
     ) u_st_gene (
         .SENSOR_CLK(SENSOR_CLK),
         .FPGA_RST(FPGA_RST),

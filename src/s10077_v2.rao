@@ -1,0 +1,26 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Lite</Mode>
+    <AoCore_Lite index="0" sample_clock="SENSOR_CLK" trig_type="0" capture_amount="1024" implemention="0" input_register_enabled="0" capture_init_data_enabled="0" module_name="top">
+        <SignalList>
+            <Signal capture_enable="true">EOC</Signal>
+            <Signal capture_enable="true">ST</Signal>
+            <Signal capture_enable="true">EOC_EDGE</Signal>
+            <Bus capture_enable="true" name="eoc_count[10:0]">
+                <Signal>eoc_count[10]</Signal>
+                <Signal>eoc_count[9]</Signal>
+                <Signal>eoc_count[8]</Signal>
+                <Signal>eoc_count[7]</Signal>
+                <Signal>eoc_count[6]</Signal>
+                <Signal>eoc_count[5]</Signal>
+                <Signal>eoc_count[4]</Signal>
+                <Signal>eoc_count[3]</Signal>
+                <Signal>eoc_count[2]</Signal>
+                <Signal>eoc_count[1]</Signal>
+                <Signal>eoc_count[0]</Signal>
+            </Bus>
+        </SignalList>
+    </AoCore_Lite>
+    <GAO_ID>1000100001111100</GAO_ID>
+</GAO_CONFIG>

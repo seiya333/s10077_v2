@@ -198,15 +198,18 @@ module eoc_counter (
     output reg [10:0] EOC_COUNT
 );
     reg [10:0] count_reg;
+    reg stop_flag;  // EOSが来たらカウント停止
 
     always @(posedge FPGA_CLK) begin
         if (!FPGA_RST) begin
             count_reg <= 0;
+            stop_flag <= 1'b0;
         end
         else if (EOS_EDGE_FF) begin
-            count_reg <= 0;
+            // count_reg <= 0;
+            stop_flag <= 1'b1;
         end 
-        else if (EOC_EDGE_FF) begin
+        else if (EOC_EDGE_FF && !stop_flag) begin
             // if(count_reg < 10'b10000000000)begin
             //     count_reg <= count_reg + 10'b1;
             // end

@@ -205,16 +205,16 @@ module eoc_counter (
     input wire FPGA_CLK,
     input wire FPGA_RST,
     input wire EOC_EDGE_FF,
-    output reg [10:0] EOC_COUNT
+    output reg [9:0] EOC_COUNT
 );
-    reg [10:0] count_reg;
+    reg [9:0] count_reg;
 
     always @(posedge FPGA_CLK or negedge FPGA_RST) begin
         if (!FPGA_RST) begin
             count_reg <= 0;
         end else if (EOC_EDGE_FF) begin
-            if(count_reg < 11'b10000000000)begin
-                count_reg <= count_reg + 11'b1;
+            if(count_reg < 10'b10000000000)begin
+                count_reg <= count_reg + 10'b1;
             end
             else begin
                 count_reg <= count_reg;

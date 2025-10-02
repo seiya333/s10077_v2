@@ -213,7 +213,7 @@ module eoc_counter (
         if (!FPGA_RST) begin
             count_reg <= 0;
         end else if (EOC_EDGE_FF) begin
-            if(count_reg < 11'd1024)begin
+            if(count_reg < 11'b10000000000)begin
                 count_reg <= count_reg + 11'b1;
             end
             else begin

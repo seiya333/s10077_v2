@@ -190,30 +190,67 @@ module eos_edge_detect (
     assign EOS_FLAG_OUT = eos_flag;
 endmodule
 
+module eos_edge_detect_fall (
+    input wire FPGA_CLK,
+    input wire FPGA_RST,
+    input wire EOS,
+    output reg EOSF_EDGE_FF
+);
+
+    reg EOSF_DLY;
+    wire EOSF_DLY_INVERT;
+    wire EOSF_EDGE;
+    
+    always @(posedge FPGA_CLK) begin
+        if (!FPGA_RST) begin
+            // Reset logic
+            EOSF_DLY <= 0;
+        end else begin
+            // Main logic
+            EOSF_DLY <= EOS;
+        end
+    end
+    assign EOSF_DLY_INVERT = EOSF_DLY;
+    assign EOSF_EDGE = ~EOSF & EOSF_DLY_INVERT; // 立ち下がりエッジ検出に変更
+    always @(posedge FPGA_CLK) begin
+        if (!FPGA_RST) begin
+            // Reset logic
+            EOSF_EDGE_FF <= 0;
+        end else begin
+            // Main logic
+            EOSF_EDGE_FF <= EOSF_EDGE;
+        end
+    end
+endmodule
+
 module eoc_counter (
     input wire FPGA_CLK,
     input wire FPGA_RST,
     input wire EOC_EDGE_FF,
     input wire EOS_EDGE_FF, 
+    input wire EOSF_EDGE_FF,
     output reg [10:0] EOC_COUNT
 );
     reg [10:0] count_reg;
-    reg stop_flag;  // EOSが来たらカウント停止
+    reg counting;
 
     always @(posedge FPGA_CLK) begin
         if (!FPGA_RST) begin
             count_reg <= 0;
-            stop_flag <= 1'b0;
+            counting <= 1'b0;
         end
-        else if (EOS_EDGE_FF) begin
-            // count_reg <= 0;
-            stop_flag <= 1'b1;
+        else if (EOSF_EDGE_FF) begin
+            count_reg <= 0;
+            counting <= 1'b1;
         end 
-        else if (EOC_EDGE_FF && !stop_flag) begin
+        else if (EOS_EDGE_FF) begin
+            counting <= 1'b0;
+        end
+        else if (EOC_EDGE_FF && counting) begin
             // if(count_reg < 10'b10000000000)begin
             //     count_reg <= count_reg + 10'b1;
             // end
-            count_reg <= count_reg + 11'b1;
+            count_reg <= count_reg + 1'b1;
             // else begin
             //     count_reg <= count_reg;
             // end

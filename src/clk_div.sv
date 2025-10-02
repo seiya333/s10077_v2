@@ -1,46 +1,17 @@
-// `default_nettype none
-
-// module top (
-//     input  wire FPGA_CLK,   // FPGAの基準クロック (例: 50 MHz)
-//     input  wire FPGA_RST,   // 外部リセットスイッチ
-//     output wire SENSOR_CLK, // 分周クロック
-//     output wire ST          // 出力信号
-// );
-
-//     // クロック分周モジュール
-//     clk_div #(
-//         .DIV(8)
-//     ) clk_div_inst (
-//         .FPGA_CLK(FPGA_CLK),
-//         .FPGA_RST(FPGA_RST),
-//         .SENSOR_CLK(SENSOR_CLK)
-//     );
-
-//     // ST生成モジュール
-//     st_gene #(
-//         .MAX(100),
-//         .MIN(0),
-//         .HIGH(10)
-//     ) st_gene_inst (
-//         .SENSOR_CLK(SENSOR_CLK),
-//         .FPGA_RST(FPGA_RST),
-//         .ST(ST)
-//     );
-
-// endmodule
 
 module top(
     input  wire FPGA_CLK,   // FPGA の基準クロック
     input  wire FPGA_RST,   // リセット (Active Low なら調整が必要)
     input  wire EOC,        // センサからの EOC 入力
+    input  wire EOS,        // センサからの EOS 入力 (未使用)
 
     output wire SENSOR_CLK, // センサ駆動用クロック
     output wire ST,         // センサ駆動用 ST 信号
-    output wire EOC_EDGE,    // EOC 立ち上がり検出出力
-    // output wire [10:0] EOC_COUNT, // EOC 立ち上がり検出回数
     output wire [5:0] LED
 );
     wire [10:0] eoc_count;
+    wire eoc_edge;
+    wire eos_edge;
     // クロック分周器
     clk_div #(
         .DIV(8)
@@ -66,7 +37,14 @@ module top(
         .FPGA_CLK(FPGA_CLK),
         .FPGA_RST(FPGA_RST),
         .EOC(EOC),
-        .EOC_EDGE_FF(EOC_EDGE)
+        .EOC_EDGE_FF(eoc_edge)
+    );
+
+    eos_edge_detect u_eos_edge_detect (
+        .FPGA_CLK(FPGA_CLK),
+        .FPGA_RST(FPGA_RST),
+        .EOS(EOS), 
+        .EOS_EDGE_FF(eos_edge) // 未使用
     );
 
     // EOC カウンタ
@@ -91,7 +69,7 @@ module clk_div #(parameter DIV = 8)
     reg [31:0] counter;
 
     // クロックが立ち上がるたびにカウンターを増やす
-    always @(posedge FPGA_CLK or negedge FPGA_RST) begin
+    always @(posedge FPGA_CLK) begin
         if (!FPGA_RST) begin
             counter <= 0;
             SENSOR_CLK <= 0;
@@ -107,36 +85,6 @@ module clk_div #(parameter DIV = 8)
 
 endmodule
 
-// module st_gene #(
-//     parameter MAX = 120000,
-//     parameter MIN = 0,
-//     parameter HIGH = 6000
-// )(
-//     input wire SENSOR_CLK,
-//     input wire FPGA_RST,
-//     output reg ST
-// );
-//     reg [20:0] st_counter;
-//     localparam LOW = MAX - HIGH;
-
-//     always @(posedge SENSOR_CLK or negedge FPGA_RST) begin
-//         if (!FPGA_RST) begin
-//             st_counter <= 0;
-//             ST <= 0;
-//         end
-//         else begin
-//             st_counter <= st_counter + 1;
-//             if (st_counter == LOW-1) begin
-//                 ST <= 1; // ST信号をHIGHに
-//             end
-//             else if (st_counter == MAX-1) begin
-//                 st_counter <= 0;
-//                 ST <= 0; // ST信号をLOWに戻してカウンターをリセット
-//             end
-//         end
-//     end
-// endmodule
-
 module st_gene #(
     parameter MAX = 40000,
     parameter MIN = 0,
@@ -150,7 +98,7 @@ module st_gene #(
     localparam LOW = MAX - HIGH;
 
     // カウンタの制御 (SENSOR_CLK の立ち上がりエッジでのみ更新)
-    always @(posedge SENSOR_CLK or negedge FPGA_RST) begin
+    always @(posedge SENSOR_CLK) begin
         if (!FPGA_RST) begin
             st_counter <= 0;
         end
@@ -201,57 +149,65 @@ module eoc_edge_detect (
     end
 endmodule
 
+module eos_edge_detect (
+    input wire FPGA_CLK,
+    input wire FPGA_RST,
+    input wire EOS,
+    output reg EOS_EDGE_FF
+);
+
+    reg EOS_DLY;
+    wire EOS_DLY_INVERT;
+    wire EOS_EDGE;
+    
+    always @(posedge FPGA_CLK) begin
+        if (!FPGA_RST) begin
+            // Reset logic
+            EOS_DLY <= 0;
+        end else begin
+            // Main logic
+            EOS_DLY <= EOS;
+        end
+    end
+    assign EOS_DLY_INVERT = ~EOS_DLY;
+    assign EOS_EDGE = EOS & EOS_DLY_INVERT;
+    always @(posedge FPGA_CLK) begin
+        if (!FPGA_RST) begin
+            // Reset logic
+            EOS_EDGE_FF <= 0;
+        end else begin
+            // Main logic
+            EOS_EDGE_FF <= EOS_EDGE;
+        end
+    end
+endmodule
+
 module eoc_counter (
     input wire FPGA_CLK,
     input wire FPGA_RST,
     input wire EOC_EDGE_FF,
-    output reg [9:0] EOC_COUNT
+    input wire EOS_EDGE_FF, 
+    output reg [10:0] EOC_COUNT
 );
-    reg [9:0] count_reg;
+    reg [10:0] count_reg;
 
-    always @(posedge FPGA_CLK or negedge FPGA_RST) begin
+    always @(posedge FPGA_CLK) begin
         if (!FPGA_RST) begin
             count_reg <= 0;
-        end else if (EOC_EDGE_FF) begin
-            if(count_reg < 10'b10000000000)begin
-                count_reg <= count_reg + 10'b1;
-            end
-            else begin
-                count_reg <= count_reg;
-            end
+        end
+        else if (EOS_EDGE_FF) begin
+            count_reg <= 0;
+        end 
+        else if (EOC_EDGE_FF) begin
+            // if(count_reg < 10'b10000000000)begin
+            //     count_reg <= count_reg + 10'b1;
+            // end
+            count_reg <= count_reg + 11'b1;
+            // else begin
+            //     count_reg <= count_reg;
+            // end
         end
     end
     assign EOC_COUNT = count_reg;
 endmodule
 
-// module st_gene #(
-//     parameter MAX = 120000,
-//     parameter MIN = 0,
-//     parameter HIGH = 6000
-// )(
-//     input wire SENSOR_CLK,
-//     input wire FPGA_RST,
-//     output reg ST
-// );
-//     reg [16:0] st_counter;
-//     localparam LOW = MAX - HIGH;
-
-//     always @(posedge SENSOR_CLK or posedge !FPGA_RST) begin
-//         if (!FPGA_RST) begin
-//             st_counter <= 0;
-//             ST <= 0;
-//         end
-//         else if (st_counter <= LOW-1) begin
-//             st_counter <= st_counter + 17'b1;
-//             ST <= 0;
-//         end
-//         else if (st_counter == MAX-1) begin
-//             st_counter <= 0;
-//             ST <= 0;
-//         end
-//         else begin
-//             st_counter <= st_counter + 17'b1;
-//             ST <= 1;
-//         end
-//     end
-// endmodule

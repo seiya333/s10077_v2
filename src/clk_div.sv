@@ -12,6 +12,7 @@ module top(
     wire [10:0] eoc_count;
     wire eoc_edge;
     wire eos_edge;
+    wire eos_fla_out;
     // クロック分周器
     clk_div #(
         .DIV(8)
@@ -44,7 +45,8 @@ module top(
         .FPGA_CLK(FPGA_CLK),
         .FPGA_RST(FPGA_RST),
         .EOS(EOS), 
-        .EOS_EDGE_FF(eos_edge)
+        .EOS_EDGE_FF(eos_edge),
+        .EOS_FLAG_OUT(eos_fla_out)
     );
 
     // EOC カウンタ
@@ -154,7 +156,8 @@ module eos_edge_detect (
     input wire FPGA_CLK,
     input wire FPGA_RST,
     input wire EOS,
-    output reg EOS_EDGE_FF
+    output reg EOS_EDGE_FF,
+    output reg EOS_FLAG_OUT
 );
 
     reg EOS_DLY;
@@ -184,6 +187,7 @@ module eos_edge_detect (
             eos_flag <= 1'b1;
         end
     end
+    assign EOS_FLAG_OUT = eos_flag;
 endmodule
 
 module eoc_counter (

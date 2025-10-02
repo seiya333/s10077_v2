@@ -157,6 +157,7 @@ module eos_edge_detect (
 );
 
     reg EOS_DLY;
+    reg eos_flag;
     wire EOS_DLY_INVERT;
     wire EOS_EDGE;
     
@@ -175,9 +176,11 @@ module eos_edge_detect (
         if (!FPGA_RST) begin
             // Reset logic
             EOS_EDGE_FF <= 0;
+            eos_flag <= 1'b0;
         end else begin
             // Main logic
             EOS_EDGE_FF <= EOS_EDGE;
+            eos_flag <= 1'b1;
         end
     end
 endmodule

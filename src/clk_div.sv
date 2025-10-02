@@ -44,14 +44,15 @@ module top(
         .FPGA_CLK(FPGA_CLK),
         .FPGA_RST(FPGA_RST),
         .EOS(EOS), 
-        .EOS_EDGE_FF(eos_edge) // 未使用
+        .EOS_EDGE_FF(eos_edge)
     );
 
     // EOC カウンタ
     eoc_counter u_eoc_counter (
         .FPGA_CLK(FPGA_CLK),
         .FPGA_RST(FPGA_RST),
-        .EOC_EDGE_FF(EOC_EDGE),
+        .EOC_EDGE_FF(eoc_edge),
+        .EOS_EDGE_FF(eos_edge),
         .EOC_COUNT(eoc_count)
     );
 

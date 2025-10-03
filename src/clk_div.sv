@@ -12,7 +12,8 @@ module top(
     wire [10:0] eoc_count;
     wire eoc_edge;
     wire eos_edge;
-    wire eos_fla_out;
+    wire eos_edge_fall;
+    wire eos_flag_out;
     // クロック分周器
     clk_div #(
         .DIV(8)
@@ -46,7 +47,14 @@ module top(
         .FPGA_RST(FPGA_RST),
         .EOS(EOS), 
         .EOS_EDGE_FF(eos_edge),
-        .EOS_FLAG_OUT(eos_fla_out)
+        .EOS_FLAG_OUT(eos_flag_out)
+    );
+
+    eos_edge_detect_fall u_eos_edge_detect_fall (
+        .FPGA_CLK(FPGA_CLK),
+        .FPGA_RST(FPGA_RST),
+        .EOS(EOS), 
+        .EOSF_EDGE_FF(eos_edge_fall)
     );
 
     // EOC カウンタ
@@ -55,6 +63,7 @@ module top(
         .FPGA_RST(FPGA_RST),
         .EOC_EDGE_FF(eoc_edge),
         .EOS_EDGE_FF(eos_edge),
+        .EOSF_EDGE_FF(eos_edge_fall),
         .EOC_COUNT(eoc_count)
     );
 
@@ -198,7 +207,6 @@ module eos_edge_detect_fall (
 );
 
     reg EOSF_DLY;
-    wire EOSF_DLY_INVERT;
     wire EOSF_EDGE;
     
     always @(posedge FPGA_CLK) begin
@@ -210,8 +218,7 @@ module eos_edge_detect_fall (
             EOSF_DLY <= EOS;
         end
     end
-    assign EOSF_DLY_INVERT = EOSF_DLY;
-    assign EOSF_EDGE = ~EOSF & EOSF_DLY_INVERT; // 立ち下がりエッジ検出に変更
+    assign EOSF_EDGE = ~EOS & EOSF_DLY; // 立ち下がりエッジ検出に変更
     always @(posedge FPGA_CLK) begin
         if (!FPGA_RST) begin
             // Reset logic
